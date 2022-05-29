@@ -72,7 +72,7 @@ AShooterCharacter::AShooterCharacter() :
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
 
-
+	HandSceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("HandSceneComp"));
 }
 
 // Called when the game starts or when spawned
@@ -434,6 +434,10 @@ void AShooterCharacter::SelectButtonPressed()
 	if (TraceHitItem)
 	{
 		TraceHitItem->StartItemCurve(this);
+		if (TraceHitItem->GetPickUpSound())
+		{
+			UGameplayStatics::PlaySound2D(this, TraceHitItem->GetPickUpSound());
+		}
 	}
 }
 
@@ -580,6 +584,28 @@ bool AShooterCharacter::CarryingAmmo()
 	return false;
 }
 
+void AShooterCharacter::GrabClip()
+{
+	if(EquippedWeapon == nullptr) return;
+	if(HandSceneComponent == nullptr) return;
+	//µ¯¼ÐµÄ¹Ç÷Àindex
+	int32 ClipBoneIndex { EquippedWeapon->GetItemMesh()->GetBoneIndex(EquippedWeapon->GetClipBoneName())};
+	
+	ClipTransform = EquippedWeapon->GetItemMesh()->GetBoneTransform(ClipBoneIndex);
+
+	FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepRelative, true);
+	HandSceneComponent->AttachToComponent(GetMesh(), AttachmentRules, FName(TEXT("hand_l")));
+	HandSceneComponent->SetWorldTransform(ClipTransform);
+
+	EquippedWeapon->SetMovingClip(true);
+}
+
+void AShooterCharacter::ReleaseClip()
+{
+	EquippedWeapon->SetMovingClip(false);
+
+}
+
 // Called every frame
 void AShooterCharacter::Tick(float DeltaTime)
 {
@@ -652,6 +678,10 @@ FVector AShooterCharacter::GetCameraInterpLocation()
 
 void AShooterCharacter::GetPickUpItem(Aitem* Item)
 {
+	if (Item->GetEquipSound())
+	{
+		UGameplayStatics::PlaySound2D(this, Item->GetEquipSound());
+	}
 	auto Weapon = Cast<AWeapon>(Item);
 	if (Weapon)
 	{

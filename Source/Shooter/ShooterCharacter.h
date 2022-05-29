@@ -104,6 +104,13 @@ protected:
 	void FinishReloading();
 
 	bool CarryingAmmo();//有无备用子弹
+
+	UFUNCTION(BlueprintCallable)
+	void GrabClip();
+
+	UFUNCTION(BlueprintCallable)
+	void ReleaseClip();
+	 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -242,6 +249,13 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* ReloadMontage;//换弹montage
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	FTransform ClipTransform;//弹夹的变换
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	USceneComponent* HandSceneComponent;
+
 
 public:
 

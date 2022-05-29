@@ -49,6 +49,12 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties", meta = (AllowPrivateAccess = "true"))
 	int32 MagazineCapacity;//一个弹夹的容量
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon Properties", meta = (AllowPrivateAccess = "true"))
+	bool bMovingClip;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties", meta = (AllowPrivateAccess = "true"))
+	FName ClipBoneName;
+
 public:
 	void ThrowWeapon();
 
@@ -60,6 +66,8 @@ public:
 	FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }
 	FORCEINLINE FName GetReloadMontageSection() const { return ReloadMontageSection; }
 	FORCEINLINE int32 GetMagazineCapacity() const { return MagazineCapacity; }
+	FORCEINLINE FName GetClipBoneName() const {return ClipBoneName; }
 
 	void ReloadAmmo(int32 Amount);
+	void SetMovingClip(bool Move) { bMovingClip = Move; }
 };
