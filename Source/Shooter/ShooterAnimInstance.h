@@ -9,6 +9,18 @@
 /**
  * 
  */
+ UENUM(BlueprintType)
+enum class EOffsetState : uint8 
+{
+	EOS_Aiming UMETA(DisplayName = "Aiming"),
+	EOS_Hip UMETA(DisplayName = "Hip"),
+	EOS_Reloading UMETA(DisplayName = "Reloading"),
+	EOS_InAir UMETA(DisplayName = "InAir"),
+
+	EOS_MAX UMETA(DisplayName = "MAX")
+};
+
+
 UCLASS()
 class SHOOTER_API UShooterAnimInstance : public UAnimInstance
 {
@@ -61,4 +73,13 @@ private:
 	float RotationCurve;
 
 	float RotationCurveLastFrame;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
+	float pitch;//Ç¹¿Ú¸úËæ×¼ÐÇ aimoffset
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
+	bool bReloading;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
+	EOffsetState OffsetState;
 };

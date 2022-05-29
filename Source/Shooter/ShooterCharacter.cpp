@@ -29,8 +29,8 @@ AShooterCharacter::AShooterCharacter() :
 	AimingLookUpRate(20.f),
 	ZoomInterpSpeed(20.f),
 	MouseHipTurnRate(1.f),
-	MouseHipLookUpRate(1.f),
 	MouseAimingTurnRate(0.2f),
+	MouseHipLookUpRate(1.f),
 	MouseAimingLookUpRate(0.2f),
 	CrosshairSpreadMultiplier(0.f),
 	CrosshairVelocityFactor(0.f),
@@ -39,9 +39,9 @@ AShooterCharacter::AShooterCharacter() :
 	CrosshairShootingFactor(0.f),
 	ShootTimeDuration(0.05f),
 	bFiringBullet(false),
-	AutomaticFireRate(0.1f),
-	bShouldFire(true),
 	bFireButtonPressed(false),
+	bShouldFire(true),
+	AutomaticFireRate(0.1f),
 	bShouldTraceForItem(false),
 	CameraInterpDistance(250.f),//用于拾起武器的显示
 	CameraInterpElevation(65.f),
@@ -527,7 +527,7 @@ void AShooterCharacter::ReloadWeapon()
 	if (CombatState != ECombatState::ECS_Unoccupied) return;
 	if(EquippedWeapon == nullptr) return;
 
-	if (CarryingAmmo()) 
+	if (CarryingAmmo() && !EquippedWeapon->ClipIsFull()) 
 	{
 		CombatState = ECombatState::ECS_Reloading;
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();

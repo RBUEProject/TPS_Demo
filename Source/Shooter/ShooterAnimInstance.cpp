@@ -15,7 +15,10 @@ UShooterAnimInstance::UShooterAnimInstance() :
 	bAiming(false),
 	CharacterYaw(0.f),
 	CharacterYawLastFrame(0.f),
-	RootYawOffset(0.f)
+	RootYawOffset(0.f),
+	pitch(0),
+	bReloading(false),
+	OffsetState(EOffsetState::EOS_Hip)
 {
 
 }
@@ -33,6 +36,8 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 	}
 	if (shooterCharacter)
 	{
+		bReloading = shooterCharacter->GetCombatState() == ECombatState::ECS_Reloading;
+		
 		FVector Velocity {shooterCharacter->GetVelocity() };
 		Velocity.Z = 0;
 		speed = Velocity.Size();
@@ -59,6 +64,23 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		//GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Blue, testMessage);
 
 		bAiming = shooterCharacter->GetAiming();
+
+		if (bReloading)
+		{
+			OffsetState = EOffsetState::EOS_Reloading;
+		}
+		else if (bIsInAir)
+		{
+			OffsetState = EOffsetState::EOS_InAir;
+		}
+		else if (shooterCharacter->GetAiming())
+		{
+			OffsetState = EOffsetState::EOS_Aiming;
+		}
+		else
+		{
+			OffsetState = EOffsetState::EOS_Hip;
+		}
 	}
 	TurnInPlace();
 }
@@ -67,7 +89,10 @@ void UShooterAnimInstance::TurnInPlace()
 {
 	if(shooterCharacter == nullptr) return;
 
-	if (speed > 0)
+	pitch = shooterCharacter->GetBaseAimRotation().Pitch;
+
+
+	if (speed > 0 || bIsInAir)
 	{
 		RootYawOffset = 0.f;
 
@@ -102,7 +127,5 @@ void UShooterAnimInstance::TurnInPlace()
 				RootYawOffset > 0 ? RootYawOffset -= YawExcess : RootYawOffset += YawExcess;
 			}
 		}
-
-
 	}
 }
