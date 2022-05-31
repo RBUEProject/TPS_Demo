@@ -37,6 +37,8 @@ protected:
 	
 	void TurnInPlace();
 
+	void Lean(float DeltaTime);//移动时倾斜
+
 private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
@@ -62,9 +64,13 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	bool bAiming;
 
-	float CharacterYaw;
+	float TIPCharacterYaw;//idle时的yaw
 
-	float CharacterYawLastFrame;
+	float TIPCharacterYawLastFrame;
+
+	FRotator CharacterRotation;
+
+	FRotator CharacterRotationLastFrame;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
 	float RootYawOffset;
@@ -82,4 +88,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
 	EOffsetState OffsetState;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Lean", meta = (AllowPrivateAccess = "true"))
+	double YawDelta;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Crouching", meta = (AllowPrivateAccess = "true"))
+	bool bCrouching;//下蹲为true
 };

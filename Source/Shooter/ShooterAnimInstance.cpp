@@ -13,12 +13,15 @@ UShooterAnimInstance::UShooterAnimInstance() :
 	MovementOffsetYaw(0.f),
 	LastMovementOffsetYaw(0.f),
 	bAiming(false),
-	CharacterYaw(0.f),
-	CharacterYawLastFrame(0.f),
+	TIPCharacterYaw(0.f),
+	TIPCharacterYawLastFrame(0.f),
 	RootYawOffset(0.f),
 	pitch(0),
 	bReloading(false),
-	OffsetState(EOffsetState::EOS_Hip)
+	OffsetState(EOffsetState::EOS_Hip),
+	CharacterRotation(FRotator(0.f)),
+	CharacterRotationLastFrame(FRotator(0.f)),
+	YawDelta(0.f)
 {
 
 }
@@ -34,8 +37,11 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 	{
 		shooterCharacter = Cast<AShooterCharacter>(TryGetPawnOwner());
 	}
+
 	if (shooterCharacter)
 	{
+		bCrouching = shooterCharacter->GetCrouching();
+
 		bReloading = shooterCharacter->GetCombatState() == ECombatState::ECS_Reloading;
 		
 		FVector Velocity {shooterCharacter->GetVelocity() };
@@ -83,6 +89,7 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		}
 	}
 	TurnInPlace();
+	Lean(DeltaTime);
 }
 
 void UShooterAnimInstance::TurnInPlace()
@@ -96,20 +103,21 @@ void UShooterAnimInstance::TurnInPlace()
 	{
 		RootYawOffset = 0.f;
 
-		CharacterYaw = shooterCharacter->GetActorRotation().Yaw;
-		CharacterYawLastFrame = CharacterYaw;
+		TIPCharacterYaw = shooterCharacter->GetActorRotation().Yaw;
+		TIPCharacterYawLastFrame = TIPCharacterYaw;
 		RotationCurve = 0.f;
 		RotationCurveLastFrame = 0.f;
 	}
 	else
 	{
-		CharacterYawLastFrame = CharacterYaw;
-		CharacterYaw = shooterCharacter->GetActorRotation().Yaw;
-		const float YawDelta {CharacterYaw - CharacterYawLastFrame };//控制器转的角度
+		TIPCharacterYawLastFrame = TIPCharacterYaw;
+		TIPCharacterYaw = shooterCharacter->GetActorRotation().Yaw;
+		const float TIPYawDelta {TIPCharacterYaw - TIPCharacterYawLastFrame };//控制器转的角度
 
 		//根和controller的偏移角度, root yaw offset , updated and clamped to [-180,180] 
-		RootYawOffset = UKismetMathLibrary::NormalizeAxis(RootYawOffset - YawDelta);// > 0 : Turning left , < 0 : Turning right
-		GEngine->AddOnScreenDebugMessage(1,-1,FColor::Cyan,FString::Printf(TEXT("%f"),RootYawOffset));
+		RootYawOffset = UKismetMathLibrary::NormalizeAxis(RootYawOffset - TIPYawDelta);
+		//RootYawOffset > 0 : Turning left , < 0 : Turning right
+		//GEngine->AddOnScreenDebugMessage(1,-1,FColor::Cyan,FString::Printf(TEXT("%f"),RootYawOffset));
 		const float Turning{ GetCurveValue(TEXT("turning")) };//==1在旋转
 
 		if (Turning > 0)
@@ -128,4 +136,18 @@ void UShooterAnimInstance::TurnInPlace()
 			}
 		}
 	}
+}
+
+void UShooterAnimInstance::Lean(float DeltaTime)
+{
+	if (shooterCharacter == nullptr) return;
+	CharacterRotationLastFrame = CharacterRotation;
+	CharacterRotation = shooterCharacter->GetActorRotation();
+
+	const FRotator Delta{ UKismetMathLibrary::NormalizedDeltaRotator(CharacterRotation, CharacterRotationLastFrame) };
+
+	const double Target{ Delta.Yaw / DeltaTime };
+	const double Interp{ FMath::FInterpTo(YawDelta, Target, DeltaTime, 6.f) };
+	YawDelta = FMath::Clamp(Interp, -90.f, 90.f);
+	GEngine->AddOnScreenDebugMessage(1,-1,FColor::Cyan,FString::Printf(TEXT("%f"), YawDelta));
 }

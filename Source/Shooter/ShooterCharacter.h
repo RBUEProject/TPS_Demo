@@ -110,6 +110,8 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void ReleaseClip();
+
+	void CrouchButtonPressed();
 	 
 public:	
 	// Called every frame
@@ -256,7 +258,8 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	USceneComponent* HandSceneComponent;
 
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movenent, meta = (AllowPrivateAccess = "true"))
+	bool bCrouching;
 public:
 
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
@@ -275,4 +278,6 @@ public:
 	void GetPickUpItem(Aitem* Item);
 
 	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
+
+	FORCEINLINE bool GetCrouching() const { return bCrouching; }
 };
