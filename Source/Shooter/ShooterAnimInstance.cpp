@@ -21,7 +21,9 @@ UShooterAnimInstance::UShooterAnimInstance() :
 	OffsetState(EOffsetState::EOS_Hip),
 	CharacterRotation(FRotator(0.f)),
 	CharacterRotationLastFrame(FRotator(0.f)),
-	YawDelta(0.f)
+	YawDelta(0.f),
+	RecoilWeight(1.f),
+	bTurningInPlace(false)
 {
 
 }
@@ -108,7 +110,7 @@ void UShooterAnimInstance::TurnInPlace()
 		RotationCurve = 0.f;
 		RotationCurveLastFrame = 0.f;
 	}
-	else
+	else//原地旋转
 	{
 		TIPCharacterYawLastFrame = TIPCharacterYaw;
 		TIPCharacterYaw = shooterCharacter->GetActorRotation().Yaw;
@@ -122,6 +124,7 @@ void UShooterAnimInstance::TurnInPlace()
 
 		if (Turning > 0)
 		{
+			bTurningInPlace = true;
 			RotationCurveLastFrame = RotationCurve;
 			RotationCurve = GetCurveValue(TEXT("Rotation"));
 			const float DeltaRotation{ RotationCurve - RotationCurveLastFrame };
@@ -133,6 +136,48 @@ void UShooterAnimInstance::TurnInPlace()
 			{
 				const float YawExcess {ABSRootYawOffset - 90.f};
 				RootYawOffset > 0 ? RootYawOffset -= YawExcess : RootYawOffset += YawExcess;
+			}
+		}
+		else
+		{
+			bTurningInPlace = false;
+		}
+	}
+	
+	//设置RecoilWeight
+	if (bTurningInPlace)
+	{
+		if (bReloading)
+		{
+			RecoilWeight = 1.f;//上下身混合权重
+		}
+		else
+		{
+			RecoilWeight = 0.f;
+		}
+	}
+	else
+	{
+		if (bCrouching)
+		{
+			if (bReloading)
+			{
+				RecoilWeight = 1.f;
+			}
+			else
+			{
+				RecoilWeight = 0.1f;
+			}
+		}
+		else
+		{
+			if (bAiming || bReloading)
+			{
+				RecoilWeight = 1.f;
+			}
+			else
+			{
+				RecoilWeight = 0.5f;
 			}
 		}
 	}

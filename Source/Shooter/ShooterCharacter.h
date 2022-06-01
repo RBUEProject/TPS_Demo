@@ -113,6 +113,13 @@ protected:
 
 	void CrouchButtonPressed();
 	 
+	virtual void Jump() override;
+
+	void InterpCapsuleHalfHeight(float DeltaTime);//胶囊体大小改变
+
+	void Aim();
+	void StopAiming();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -147,8 +154,12 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	bool bAiming;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float CameraDefaultFOV;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float CameraZoomedFOV;
+
 	float CameraCurrentFOV;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -260,6 +271,28 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movenent, meta = (AllowPrivateAccess = "true"))
 	bool bCrouching;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movenent, meta = (AllowPrivateAccess = "true"))
+	float BaseMovementSpeed;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movenent, meta = (AllowPrivateAccess = "true"))
+	float CrouchMovementSpeed;
+
+	//胶囊体的变换
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movenent, meta = (AllowPrivateAccess = "true"))
+	float CurrentCapsuleHalfHeight;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movenent, meta = (AllowPrivateAccess = "true"))
+	float StadingCapsuleHalfHeight;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movenent, meta = (AllowPrivateAccess = "true"))
+	float CrouchingCapsuleHalfHeight;
+
+	//摩擦力
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movenent, meta = (AllowPrivateAccess = "true"))
+	float BaseGroundFriction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movenent, meta = (AllowPrivateAccess = "true"))
+	float CrouchingGroundFriction;
+
+	bool bAimingButtonPressed;
 public:
 
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
