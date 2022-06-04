@@ -7,6 +7,8 @@
 #include "Components/SphereComponent.h"
 #include "ShooterCharacter.h"
 #include "Camera/CameraComponent.h"
+#include <Kismet/GameplayStatics.h>
+#include "Sound/SoundCue.h"
 
 // Sets default values
 Aitem::Aitem():
@@ -20,7 +22,9 @@ Aitem::Aitem():
 	bInterping(false),
 	ItemInterpX(0.f),
 	ItemInterpY(0.f),
-	InterpInitialYawOffset(0.f)
+	InterpInitialYawOffset(0.f),
+	ItemType(EItemType::EIT_MAX),
+	InterpLocIndex(0)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -34,7 +38,7 @@ Aitem::Aitem():
 	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
 	PickupWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PickupWidget"));
-	PickupWidget->SetupAttachment(ItemMesh);
+	PickupWidget->SetupAttachment(GetRootComponent());
 
 	AreaSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AreaSphere"));
 	AreaSphere->SetupAttachment(GetRootComponent());
@@ -54,7 +58,7 @@ void Aitem::BeginPlay()
 
 	SetActiveStars();
 
-	SetItemProperites(ItemState);
+	SetItemProperties(ItemState);
 }
 
 void Aitem::OnsphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -118,7 +122,7 @@ void Aitem::SetActiveStars()
 	}
 }
 
-void Aitem::SetItemProperites(EItemState State)
+void Aitem::SetItemProperties(EItemState State)
 {
 	switch (State)
 	{
@@ -177,6 +181,7 @@ void Aitem::FinishInterping()
 	bInterping = false;
 	if (Character)
 	{
+		Character->IncrementInterpLocItemCount(InterpLocIndex, -1 );
 		Character->GetPickUpItem(this);
 	}
 	SetActorScale3D(FVector(1.f));//将大小改回去
@@ -191,7 +196,7 @@ void Aitem::ItemInterp(float DeltaTime)//设置拾取物体的曲线
 		const float ElapsedTime = GetWorldTimerManager().GetTimerElapsed(ItemInterpTimer);
 		const float CurveValue = ItemZCurve->GetFloatValue(ElapsedTime);//根据时间获取曲线的值
 		FVector ItemLocation = ItemInterpStartLocation;
-		const FVector CameraInterpLocation {Character->GetCameraInterpLocation()};
+		const FVector CameraInterpLocation {GetInterpLocation()};
 		const FVector ItemToCamera {FVector(0.f, 0.f, (CameraInterpLocation - ItemLocation).Z)};
 		const float DeltaZ = ItemToCamera.Size();
 
@@ -217,6 +222,52 @@ void Aitem::ItemInterp(float DeltaTime)//设置拾取物体的曲线
 	}
 }
 
+FVector Aitem::GetInterpLocation()
+{
+	if(Character == nullptr) return FVector(0.f);
+
+	switch (ItemType)
+	{
+		case EItemType::EIT_Ammo:
+			return Character->GetInterpLocation(InterpLocIndex).SceneComponent->GetComponentLocation();
+			break;
+		case EItemType::EIT_Weapon:
+			return Character->GetInterpLocation(0).SceneComponent->GetComponentLocation();
+			break;
+	}
+	return FVector();
+}
+
+void Aitem::PlayPickupSound()
+{
+	if (Character)
+	{
+		if (Character->ShouldplayPickupSound())
+		{
+			Character->StartPickupSoundTimer();
+			if (PickUpSound)
+			{
+				UGameplayStatics::PlaySound2D(this, PickUpSound);
+			}
+		}
+	}
+}
+
+void Aitem::PlayEquipSound()
+{
+	if (Character)
+	{
+		if (Character->ShouldplayEquipSound())
+		{
+			Character->StartEquipSoundTimer();
+			if (EquipSound)
+			{
+				UGameplayStatics::PlaySound2D(this, EquipSound);
+			}
+		}
+	}
+}
+
 // Called every frame
 void Aitem::Tick(float DeltaTime)
 {
@@ -228,12 +279,18 @@ void Aitem::Tick(float DeltaTime)
 void Aitem::SetItemState(EItemState State)
 {
 	ItemState = State;
-	SetItemProperites(State);
+	SetItemProperties(State);
 }
 
 void Aitem::StartItemCurve(AShooterCharacter* Char)
 {
 	Character = Char;
+
+	InterpLocIndex = Character->GetInterpLocationIndex();
+	Character->IncrementInterpLocItemCount(InterpLocIndex, 1);
+
+	PlayPickupSound();
+
 	ItemInterpStartLocation = GetActorLocation();
 	bInterping = true;
 	SetItemState(EItemState::EIS_EquipInterping);
