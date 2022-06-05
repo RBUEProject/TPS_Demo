@@ -42,6 +42,8 @@ Aitem::Aitem():
 
 	AreaSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AreaSphere"));
 	AreaSphere->SetupAttachment(GetRootComponent());
+
+	InitializeCustomDepth();
 }
 
 // Called when the game starts or when spawned
@@ -185,6 +187,8 @@ void Aitem::FinishInterping()
 		Character->GetPickUpItem(this);
 	}
 	SetActorScale3D(FVector(1.f));//将大小改回去
+	DisableGlowMaterial();//换成枪的材质
+	DisableCustomDepth();
 }
 
 void Aitem::ItemInterp(float DeltaTime)//设置拾取物体的曲线
@@ -250,6 +254,47 @@ void Aitem::PlayPickupSound()
 				UGameplayStatics::PlaySound2D(this, PickUpSound);
 			}
 		}
+	}
+}
+
+void Aitem::EnableCustomDepth()
+{
+	ItemMesh->SetRenderCustomDepth(true);
+}
+
+void Aitem::DisableCustomDepth()
+{
+	ItemMesh->SetRenderCustomDepth(false);
+}
+
+void Aitem::InitializeCustomDepth()
+{
+	DisableCustomDepth();
+}
+
+void Aitem::OnConstruction(const FTransform& Transform)
+{
+	if (MaterialInstance)
+	{
+		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, this);
+		ItemMesh->SetMaterial(MaterialIndex, DynamicMaterialInstance);
+	}
+	EnableGlowMaterial();
+}
+
+void Aitem::EnableGlowMaterial()
+{
+	if (DynamicMaterialInstance)
+	{
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 0);
+	}
+}
+
+void Aitem::DisableGlowMaterial()
+{
+	if (DynamicMaterialInstance)
+	{
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 1);
 	}
 }
 
