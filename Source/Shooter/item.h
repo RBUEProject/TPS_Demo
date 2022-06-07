@@ -81,10 +81,13 @@ protected:
 	virtual void InitializeCustomDepth();
 
 	virtual void OnConstruction(const FTransform& Transform);
-	
 
 	void EnableGlowMaterial();
-	void DisableGlowMaterial();
+
+	void UpdatePulse();
+
+	void ResetPulseTimer();
+	void StartPulseTimer();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -169,6 +172,27 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
 	UMaterialInstance* MaterialInstance;
 
+	bool bCanChangeCustomDepth;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	class UCurveVector* PulseCurve;
+
+	FTimerHandle PulseTimer;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	float PulseCurveTime;
+
+	UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	float GlowAmount;
+
+	UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	float FresnelReflectFraction;
+
+	UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	float FresnelExpnent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Iventory", meta = (AllowPrivateAccess = "true"))
+	UTexture2D* IconBackground;
 
 public:
 	FORCEINLINE UWidgetComponent* GetPickupWidget() const {return PickupWidget;}
@@ -187,4 +211,6 @@ public:
 
 	virtual void EnableCustomDepth();
 	virtual void DisableCustomDepth();
+	void DisableGlowMaterial();
+
 };

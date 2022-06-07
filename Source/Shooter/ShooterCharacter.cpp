@@ -124,6 +124,9 @@ void AShooterCharacter::BeginPlay()
 	}
 
 	EquipWeapon(SpawnDefaultWeapon());
+	Inventory.Add(EquippedWeapon);
+	EquippedWeapon->DisableCustomDepth();
+	EquippedWeapon->DisableGlowMaterial();
 	InitializeAmmoMap();
 
 	GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
@@ -913,7 +916,14 @@ void AShooterCharacter::GetPickUpItem(Aitem* Item)
 	auto Weapon = Cast<AWeapon>(Item);
 	if (Weapon)
 	{
-		SwapWeapon(Weapon);
+		if (Inventory.Num() < INVENORY_CAPACITY)
+		{
+			Inventory.Add(Weapon);
+		}
+		else//ÎïÆ·À¸ÂúÁË
+		{
+			SwapWeapon(Weapon);
+		}
 	}
 
 	auto Ammo = Cast<AAmmo>(Item);

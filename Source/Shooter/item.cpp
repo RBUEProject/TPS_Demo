@@ -9,7 +9,7 @@
 #include "Camera/CameraComponent.h"
 #include <Kismet/GameplayStatics.h>
 #include "Sound/SoundCue.h"
-
+#include "Curves/CurveVector.h"
 // Sets default values
 Aitem::Aitem():
 	ItemName(FString("Default")),
@@ -24,7 +24,12 @@ Aitem::Aitem():
 	ItemInterpY(0.f),
 	InterpInitialYawOffset(0.f),
 	ItemType(EItemType::EIT_MAX),
-	InterpLocIndex(0)
+	InterpLocIndex(0),
+	bCanChangeCustomDepth(true),
+	GlowAmount(150.f),
+	FresnelExpnent(3.f),
+	FresnelReflectFraction(4.f),
+	PulseCurveTime(5.f)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -43,7 +48,6 @@ Aitem::Aitem():
 	AreaSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AreaSphere"));
 	AreaSphere->SetupAttachment(GetRootComponent());
 
-	InitializeCustomDepth();
 }
 
 // Called when the game starts or when spawned
@@ -61,6 +65,8 @@ void Aitem::BeginPlay()
 	SetActiveStars();
 
 	SetItemProperties(ItemState);
+	InitializeCustomDepth();
+	StartPulseTimer();
 }
 
 void Aitem::OnsphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -188,6 +194,7 @@ void Aitem::FinishInterping()
 	}
 	SetActorScale3D(FVector(1.f));//将大小改回去
 	DisableGlowMaterial();//换成枪的材质
+	bCanChangeCustomDepth = true;
 	DisableCustomDepth();
 }
 
@@ -259,12 +266,18 @@ void Aitem::PlayPickupSound()
 
 void Aitem::EnableCustomDepth()
 {
-	ItemMesh->SetRenderCustomDepth(true);
+	if(bCanChangeCustomDepth)
+	{
+		ItemMesh->SetRenderCustomDepth(true);
+	}
 }
 
 void Aitem::DisableCustomDepth()
 {
-	ItemMesh->SetRenderCustomDepth(false);
+	if (bCanChangeCustomDepth)
+	{
+		ItemMesh->SetRenderCustomDepth(false);
+	}
 }
 
 void Aitem::InitializeCustomDepth()
@@ -287,6 +300,19 @@ void Aitem::EnableGlowMaterial()
 	if (DynamicMaterialInstance)
 	{
 		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 0);
+	}
+}
+
+void Aitem::UpdatePulse()
+{
+	if(ItemState != EItemState::EIS_PickUp) return;
+	const float ElapsedTime{ GetWorldTimerManager().GetTimerElapsed(PulseTimer) };
+	if (PulseCurve)
+	{
+		const FVector CurveValue {PulseCurve->GetVectorValue(ElapsedTime)};
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowAmount"), CurveValue.X * GlowAmount);
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("FresnelExponent"), CurveValue.Y * FresnelExpnent);
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("FresnelReflectFraction"), CurveValue.Z * FresnelReflectFraction);
 	}
 }
 
@@ -319,6 +345,21 @@ void Aitem::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	ItemInterp(DeltaTime);
+
+	UpdatePulse();//设置动态材质
+}
+
+void Aitem::ResetPulseTimer()
+{
+	StartPulseTimer();
+}
+
+void Aitem::StartPulseTimer()
+{
+	if (ItemState == EItemState::EIS_PickUp)
+	{
+		GetWorldTimerManager().SetTimer(PulseTimer, this, &Aitem::ResetPulseTimer, PulseCurveTime);
+	}
 }
 
 void Aitem::SetItemState(EItemState State)
@@ -346,5 +387,6 @@ void Aitem::StartItemCurve(AShooterCharacter* Char)
 	const double ItemRotationYaw {GetActorRotation().Yaw};
 	InterpInitialYawOffset =  ItemRotationYaw - CameraRotationYaw;
 
+	bCanChangeCustomDepth = false;
 }
 
