@@ -29,7 +29,9 @@ Aitem::Aitem():
 	GlowAmount(150.f),
 	FresnelExpnent(3.f),
 	FresnelReflectFraction(4.f),
-	PulseCurveTime(5.f)
+	PulseCurveTime(5.f),
+	SlotIndex(0),
+	bCharacterInventoryFull(false)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -89,6 +91,7 @@ void Aitem::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 		if (ShooterCharacter)
 		{
 			ShooterCharacter->IncrementOverlappedItemCount(-1);
+			ShooterCharacter->UnHighlightInventorySlot();
 		}
 	}
 }
@@ -161,6 +164,7 @@ void Aitem::SetItemProperties(EItemState State)
 		case EItemState::EIS_Falling:
 			ItemMesh->SetSimulatePhysics(true);
 			ItemMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			ItemMesh->SetVisibility(true);
 			ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 			ItemMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
 			ItemMesh->SetEnableGravity(true);
@@ -181,6 +185,21 @@ void Aitem::SetItemProperties(EItemState State)
 			CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 			CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			break;
+		case EItemState::EIS_PickedUp:
+			PickupWidget->SetVisibility(false);
+			// Set mesh properties
+			ItemMesh->SetSimulatePhysics(false);
+			ItemMesh->SetEnableGravity(false);
+			ItemMesh->SetVisibility(false);
+			ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+			ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			// Set AreaSphere properties
+			AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+			AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			// Set CollisionBox properties
+			CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+			CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
 	}
 }
 
@@ -191,6 +210,7 @@ void Aitem::FinishInterping()
 	{
 		Character->IncrementInterpLocItemCount(InterpLocIndex, -1 );
 		Character->GetPickUpItem(this);
+		Character->UnHighlightInventorySlot();
 	}
 	SetActorScale3D(FVector(1.f));//将大小改回去
 	DisableGlowMaterial();//换成枪的材质
@@ -249,11 +269,18 @@ FVector Aitem::GetInterpLocation()
 	return FVector();
 }
 
-void Aitem::PlayPickupSound()
+void Aitem::PlayPickupSound(bool bForcePlaySound)
 {
 	if (Character)
 	{
-		if (Character->ShouldplayPickupSound())
+		if (bForcePlaySound)
+		{
+			if (PickUpSound)
+			{
+				UGameplayStatics::PlaySound2D(this, PickUpSound);
+			}
+		}
+		else if (Character->ShouldplayPickupSound())
 		{
 			Character->StartPickupSoundTimer();
 			if (PickUpSound)
@@ -293,6 +320,52 @@ void Aitem::OnConstruction(const FTransform& Transform)
 		ItemMesh->SetMaterial(MaterialIndex, DynamicMaterialInstance);
 	}
 	EnableGlowMaterial();
+
+	FString RarityTablePath(TEXT("DataTable'/Game/_Game/DataTable/ItemRarityDataTable.ItemRarityDataTable'"));
+	UDataTable* RarityTableObject = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, *RarityTablePath));
+	if (RarityTableObject)
+	{
+		FItemRarityTable* RarityRow = nullptr;
+		switch (ItemRarity)
+		{
+		case EItemRarity::EIR_Damaged:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Damaged"), TEXT(""));
+			break;
+		case EItemRarity::EIR_Common:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Common"), TEXT(""));
+			break;
+		case EItemRarity::EIR_Uncommon:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Uncommon"), TEXT(""));
+			break;
+		case EItemRarity::EIR_Rare:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Rare"), TEXT(""));
+			break;
+		case EItemRarity::EIR_Legendary:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Legendary"), TEXT(""));
+			break;
+		}
+		if (RarityRow)
+		{
+			GlowColor = RarityRow->GlowColor;
+			LightColor = RarityRow->LightColor;
+			DarkColor = RarityRow->DarkColor;
+			NumberOfStars = RarityRow->NumberOfStars;
+			IconBackground = RarityRow->IconBackground;
+
+			if (GetItemMesh())
+			{
+				GetItemMesh()->SetCustomDepthStencilValue(RarityRow->CustomDepthStencil);
+			}
+		}
+	}
+
+	if (MaterialInstance)
+	{
+		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, this);
+		DynamicMaterialInstance->SetVectorParameterValue(TEXT("FresnelColor"), GlowColor);
+		ItemMesh->SetMaterial(MaterialIndex, DynamicMaterialInstance);
+		EnableGlowMaterial();
+	}
 }
 
 void Aitem::EnableGlowMaterial()
@@ -324,11 +397,18 @@ void Aitem::DisableGlowMaterial()
 	}
 }
 
-void Aitem::PlayEquipSound()
+void Aitem::PlayEquipSound(bool bForcePlaySound)
 {
 	if (Character)
 	{
-		if (Character->ShouldplayEquipSound())
+		if (bForcePlaySound)
+		{
+			if (EquipSound)
+			{
+				UGameplayStatics::PlaySound2D(this, EquipSound);
+			}
+		}
+		else if (Character->ShouldplayEquipSound())
 		{
 			Character->StartEquipSoundTimer();
 			if (EquipSound)
@@ -337,6 +417,7 @@ void Aitem::PlayEquipSound()
 			}
 		}
 	}
+
 }
 
 // Called every frame
@@ -368,14 +449,14 @@ void Aitem::SetItemState(EItemState State)
 	SetItemProperties(State);
 }
 
-void Aitem::StartItemCurve(AShooterCharacter* Char)
+void Aitem::StartItemCurve(AShooterCharacter* Char, bool bForcePlaySound)
 {
 	Character = Char;
 
 	InterpLocIndex = Character->GetInterpLocationIndex();
 	Character->IncrementInterpLocItemCount(InterpLocIndex, 1);
 
-	PlayPickupSound();
+	PlayPickupSound(bForcePlaySound);
 
 	ItemInterpStartLocation = GetActorLocation();
 	bInterping = true;

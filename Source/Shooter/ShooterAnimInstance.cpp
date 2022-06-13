@@ -43,8 +43,8 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 	if (shooterCharacter)
 	{
 		bCrouching = shooterCharacter->GetCrouching();
-
 		bReloading = shooterCharacter->GetCombatState() == ECombatState::ECS_Reloading;
+		bEquipping = shooterCharacter->GetCombatState() == ECombatState::ECS_Equipping;
 		
 		FVector Velocity {shooterCharacter->GetVelocity() };
 		Velocity.Z = 0;
@@ -147,7 +147,7 @@ void UShooterAnimInstance::TurnInPlace()
 	//设置RecoilWeight
 	if (bTurningInPlace)
 	{
-		if (bReloading)
+		if (bReloading || bEquipping)
 		{
 			RecoilWeight = 1.f;//上下身混合权重
 		}
@@ -160,7 +160,7 @@ void UShooterAnimInstance::TurnInPlace()
 	{
 		if (bCrouching)
 		{
-			if (bReloading)
+			if (bReloading || bEquipping )
 			{
 				RecoilWeight = 1.f;
 			}
@@ -171,7 +171,7 @@ void UShooterAnimInstance::TurnInPlace()
 		}
 		else
 		{
-			if (bAiming || bReloading)
+			if (bAiming || bReloading || bEquipping )
 			{
 				RecoilWeight = 1.f;
 			}

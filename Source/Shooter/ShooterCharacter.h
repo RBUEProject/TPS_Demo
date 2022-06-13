@@ -14,6 +14,7 @@ enum class ECombatState : uint8
 	ECS_Unoccupied UMETA(DisplayName = "Unoccupied"),
 	ECS_FireTimerInProgress UMETA(DisplayName = "FireTimerInProgress"),
 	ECS_Reloading UMETA(DisplayName = "Reloading"),
+	ECS_Equipping UMETA(DisplayName = "Equipping"),
 
 	ECS_MAX UMETA(DisplayName = "DefaultMax")
 };
@@ -30,6 +31,12 @@ struct FInterpLocation
 	int32 ItemCount;
 };
 
+//第一个参数表示要替换的slot index，第二个参数表示新的slot index
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipItemDelegate, int32, CurrentSlotIndex, int32, NewSlotIndex);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FHighlightIconDelegate, int32, SlotIndex, bool, bStartAnimation);
+
+
 UCLASS()
 class SHOOTER_API AShooterCharacter : public ACharacter
 {
@@ -38,6 +45,8 @@ class SHOOTER_API AShooterCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AShooterCharacter();
+
+	void UnHighlightInventorySlot();
 
 protected:
 	// Called when the game starts or when spawned
@@ -88,7 +97,7 @@ protected:
 
 	class AWeapon* SpawnDefaultWeapon();
 
-	void EquipWeapon(AWeapon* WeaponToEquipe);
+	void EquipWeapon(AWeapon* WeaponToEquip, bool bSwaping = false);
 
 	void DropWeapon();//丢掉武器
 
@@ -114,6 +123,9 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
 
+	UFUNCTION(BlueprintCallable)
+	void FinishEquipping();
+
 	bool CarryingAmmo();//有无备用子弹
 
 	UFUNCTION(BlueprintCallable)
@@ -135,8 +147,17 @@ protected:
 
 	void InitializeInterpLocations();
 
+	void FKeyPressed();
+	void OneKeyPressed();
+	void TwoKeyPressed();
+	void ThreeKeyPressed();
+	void FourKeyPressed();
+	void FiveKeyPressed();
+	void ExchangeInventoryItems(int32 CurrentItemIndex, int32 NewItemIndex);
 
+	int32 GetEmptyInventorySlot();
 
+	void HighlightInventorySlot();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -280,6 +301,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* ReloadMontage;//换弹montage
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* EquipMontage;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	FTransform ClipTransform;//弹夹的变换
 
@@ -355,6 +379,15 @@ private:
 	TArray<Aitem*> Inventory;
 
 	const int32 INVENORY_CAPACITY {6};
+
+	UPROPERTY(BlueprintAssignable, Category = Delegates, meta = (AllowPrivateAccess = "true"))
+	FEquipItemDelegate EquipItemDelegate;
+
+	UPROPERTY(BlueprintAssignable, Category = Delegates, meta = (AllowPrivateAccess = "true"))
+	FHighlightIconDelegate HighlightIconDelegate;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	int32 HighlightedSlot;
 
 public:
 
