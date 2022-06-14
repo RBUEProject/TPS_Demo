@@ -5,6 +5,8 @@
 #include "ShooterCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Weapon.h"
+#include "WeaponType.h"
 
 UShooterAnimInstance::UShooterAnimInstance() :
 	speed(0.f),
@@ -23,7 +25,9 @@ UShooterAnimInstance::UShooterAnimInstance() :
 	CharacterRotationLastFrame(FRotator(0.f)),
 	YawDelta(0.f),
 	RecoilWeight(1.f),
-	bTurningInPlace(false)
+	bTurningInPlace(false),
+	EquippedWeaponType(EWeaponType::EWT_MAX),
+	bShouldUseFABRIK(false)
 {
 
 }
@@ -45,7 +49,8 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		bCrouching = shooterCharacter->GetCrouching();
 		bReloading = shooterCharacter->GetCombatState() == ECombatState::ECS_Reloading;
 		bEquipping = shooterCharacter->GetCombatState() == ECombatState::ECS_Equipping;
-		
+		bShouldUseFABRIK = shooterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied || shooterCharacter->GetCombatState() == ECombatState::ECS_FireTimerInProgress;
+
 		FVector Velocity {shooterCharacter->GetVelocity() };
 		Velocity.Z = 0;
 		speed = Velocity.Size();
@@ -89,9 +94,15 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		{
 			OffsetState = EOffsetState::EOS_Hip;
 		}
+		if (shooterCharacter->GetEquippedWeapon())
+		{
+		//	用于 判断当前拿的武器，来做动作适配
+			EquippedWeaponType = shooterCharacter->GetEquippedWeapon()->GetWeaponType();
+		}
 	}
 	TurnInPlace();
 	Lean(DeltaTime);
+
 }
 
 void UShooterAnimInstance::TurnInPlace()

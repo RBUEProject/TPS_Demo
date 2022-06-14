@@ -46,8 +46,6 @@ public:
 	// Sets default values for this character's properties
 	AShooterCharacter();
 
-	void UnHighlightInventorySlot();
-
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -421,4 +419,8 @@ public:
 
 	void StartPickupSoundTimer();
 	void StartEquipSoundTimer();
+	
+	void UnHighlightInventorySlot();
+
+	FORCEINLINE AWeapon* GetEquippedWeapon()const { return EquippedWeapon; }
 };

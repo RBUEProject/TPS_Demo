@@ -5,18 +5,59 @@
 #include "CoreMinimal.h"
 #include "item.h"
 #include "AmmoType.h"
+#include "Engine/DataTable.h"
+#include "WeaponType.h"
 #include "Weapon.generated.h"
 
-UENUM(BlueprintType)
-enum class EWeaponType : uint8
+
+
+USTRUCT(BlueprintType)
+struct FWeaponDataTable : public FTableRowBase
 {
-	EWT_SubmachineGun UMETA(DisplayName = "SubmachineGun"),
-	EWT_AssaultRifle UMETA(DisplayName = "AssaultRifle"),
+	GENERATED_BODY()
 
-	EWT_MAX UMETA(DisplayName = "DefaultMAX"),
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EAmmoType AmmoType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 WeaponAmmo;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MagazineCapacity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class USoundCue* PickUpSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USoundCue* EquipSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USkeletalMesh* ItemMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString ItemName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* InventoryIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* AmmoIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UMaterialInstance* MaterialInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MaterialIndex;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ClipBoneName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ReloadMontageSection;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UAnimInstance> AnimBP;
 };
-
-
 
 UCLASS()
 class SHOOTER_API AWeapon : public Aitem
@@ -29,6 +70,8 @@ public:
 protected:
 
 	void StopFalling();
+
+	virtual void OnConstruction(const FTransform& Transform) override;
 private:
 	FTimerHandle ThrowWeaponTimer;
 	float ThrowWeaponTime;
@@ -55,6 +98,12 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties", meta = (AllowPrivateAccess = "true"))
 	FName ClipBoneName;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Data Table", meta = (AllowPrivateAccess = "true"))
+	UDataTable* WeaponDataTable;
+
+
+	int32 PreviousMaterialIndex;
+
 public:
 	void ThrowWeapon();
 
@@ -65,8 +114,10 @@ public:
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
 	FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }
 	FORCEINLINE FName GetReloadMontageSection() const { return ReloadMontageSection; }
+	FORCEINLINE void SetReloadMontageSection(FName name) { ReloadMontageSection = name; }
 	FORCEINLINE int32 GetMagazineCapacity() const { return MagazineCapacity; }
 	FORCEINLINE FName GetClipBoneName() const {return ClipBoneName; }
+	FORCEINLINE void SetClipBoneName(FName name) { ClipBoneName = name; }
 
 	void ReloadAmmo(int32 Amount);
 	void SetMovingClip(bool Move) { bMovingClip = Move; }
