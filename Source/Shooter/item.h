@@ -215,7 +215,7 @@ private:
 	float FresnelReflectFraction;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	float FresnelExpnent;
+	float FresnelExponent;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory", meta = (AllowPrivateAccess = "true"))
 	UTexture2D* IconItem;

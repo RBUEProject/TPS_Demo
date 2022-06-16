@@ -27,7 +27,7 @@ Aitem::Aitem():
 	InterpLocIndex(0),
 	bCanChangeCustomDepth(true),
 	GlowAmount(150.f),
-	FresnelExpnent(3.f),
+	FresnelExponent(3.f),
 	FresnelReflectFraction(4.f),
 	PulseCurveTime(5.f),
 	SlotIndex(0),
@@ -380,11 +380,11 @@ void Aitem::UpdatePulse()
 {
 	if(ItemState != EItemState::EIS_PickUp) return;
 	const float ElapsedTime{ GetWorldTimerManager().GetTimerElapsed(PulseTimer) };
-	if (PulseCurve)
+	if (DynamicMaterialInstance)
 	{
 		const FVector CurveValue {PulseCurve->GetVectorValue(ElapsedTime)};
 		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowAmount"), CurveValue.X * GlowAmount);
-		DynamicMaterialInstance->SetScalarParameterValue(TEXT("FresnelExponent"), CurveValue.Y * FresnelExpnent);
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("FresnelExponent"), CurveValue.Y * FresnelExponent);
 		DynamicMaterialInstance->SetScalarParameterValue(TEXT("FresnelReflectFraction"), CurveValue.Z * FresnelReflectFraction);
 	}
 }

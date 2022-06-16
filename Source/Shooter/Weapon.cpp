@@ -11,7 +11,12 @@ AWeapon::AWeapon():
 	AmmoType(EAmmoType::EAT_9mm),
 	ReloadMontageSection(FName(TEXT("ReloadSMG"))),
 	MagazineCapacity(30),
-	ClipBoneName(TEXT("smg_clip"))
+	ClipBoneName(TEXT("smg_clip")),
+	SlideDisplacement(0.f),
+	SlideDisplacementTime(0.2f),
+	bMovingSlide(false),
+	MaxSlideDisplacement(4.f),
+	MaxRecoilRotation(20.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 }
@@ -25,6 +30,8 @@ void AWeapon::Tick(float DeltaTime)
 		FRotator MeshRotation {0.f, GetItemMesh()->GetComponentRotation().Yaw, 0.f};
 		GetItemMesh()->SetWorldRotation(MeshRotation, false, nullptr, ETeleportType::TeleportPhysics);
 	}
+
+	UpdateSlideDisplacement();
 }
 
 void AWeapon::ThrowWeapon()
@@ -67,11 +74,26 @@ bool AWeapon::ClipIsFull()
 	return Ammo >= MagazineCapacity;
 }
 
+void AWeapon::StartSlideTimer()
+{
+	bMovingSlide = true;
+	GetWorldTimerManager().SetTimer(SlideTimer, this, &AWeapon::FinishMovingSlide, SlideDisplacementTime);
+}
+
 void AWeapon::StopFalling()
 {
 	bFalling = false;
 	SetItemState(EItemState::EIS_PickUp);
 	StartPulseTimer();
+}
+
+void AWeapon::BeginPlay()
+{
+	Super::BeginPlay();
+	if (BoneToHide != FName(""))
+	{
+		GetItemMesh()->HideBoneByName(BoneToHide, EPhysBodyOp::PBO_None);
+	}
 }
 
 void AWeapon::OnConstruction(const FTransform& Transform)
@@ -88,7 +110,9 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 
 	case EWeaponType::EWT_AssaultRifle:
 		WeaponDataRow = WeaponDataTableObject->FindRow<FWeaponDataTable>(FName("AssaultRifle"), TEXT(""));
-
+		break;
+	case EWeaponType::EWT_Pistol:
+		WeaponDataRow = WeaponDataTableObject->FindRow<FWeaponDataTable>(FName("Pistol"), TEXT(""));
 		break;
 	}
 	if (WeaponDataRow)
@@ -110,7 +134,15 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 		SetClipBoneName(WeaponDataRow->ClipBoneName);
 		SetReloadMontageSection(WeaponDataRow->ReloadMontageSection);
 		GetItemMesh()->SetAnimInstanceClass(WeaponDataRow->AnimBP);
-
+		CrosshairMiddle = WeaponDataRow->CrosshairMiddle;
+		CrosshairLeft = WeaponDataRow->CrosshairLeft;
+		CrosshairRight = WeaponDataRow->CrosshairRight;
+		CrosshairTop = WeaponDataRow->CrosshairTop;
+		CrosshairBottom = WeaponDataRow->CrosshairBottom;
+		AutoFireRate = WeaponDataRow->AutoFireRate;
+		MuzzleFlash = WeaponDataRow->MuzzleFlash;
+		FireSound = WeaponDataRow->FireSound;
+		BoneToHide= WeaponDataRow->BoneToHide;
 	}
 	if (GetMaterialInstance())
 	{
@@ -118,5 +150,21 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 		GetDynamicMaterialInstance()->SetVectorParameterValue(TEXT("FresnelColor"), GetGlowColor());
 		GetItemMesh()->SetMaterial(GetMaterialIndex(), GetDynamicMaterialInstance());
 		EnableGlowMaterial();
+	}
+}
+
+void AWeapon::FinishMovingSlide()
+{
+	bMovingSlide = false;
+}
+
+void AWeapon::UpdateSlideDisplacement()
+{
+	if (SlideDisplacementCurve && bMovingSlide)
+	{
+		const float ElapsedTime{ GetWorldTimerManager().GetTimerElapsed(SlideTimer) };
+		const float CurveValue{ SlideDisplacementCurve->GetFloatValue(ElapsedTime) };
+		SlideDisplacement = CurveValue * MaxSlideDisplacement * -1.f;
+		RecoilRotation = CurveValue * MaxRecoilRotation * -1.f;
 	}
 }
